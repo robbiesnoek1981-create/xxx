@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Korte Contacten",
-    "slug": "korte-contacten-registratie",
+    "name": "STH Toewijzing Assistent",
+    "slug": "sth-toewijzing-assistent",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -14,7 +14,7 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "nl.sthelmond.kortecontacten",
+      "bundleIdentifier": "nl.sthelmond.toewijzing",
       "buildNumber": "1"
     },
     "android": {
@@ -22,7 +22,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#1B5E8A"
       },
-      "package": "nl.sthelmond.kortecontacten",
+      "package": "nl.sthelmond.toewijzing",
       "versionCode": 1,
       "permissions": [],
       "edgeToEdgeEnabled": true,
