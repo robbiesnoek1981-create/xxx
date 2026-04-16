@@ -12,6 +12,15 @@
       "resizeMode": "contain",
       "backgroundColor": "#1B5E8A"
     },
+    "plugins": [
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Toegang tot de microfoon is nodig voor spraakbesturing bij het schrijven van toewijzingen.",
+          "speechRecognitionPermission": "Spraakherkenning wordt gebruikt om uw gesproken tekst om te zetten naar tekst in de toewijzing."
+        }
+      ]
+    ],
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "nl.sthelmond.toewijzing",
@@ -24,7 +33,7 @@
       },
       "package": "nl.sthelmond.toewijzing",
       "versionCode": 1,
-      "permissions": [],
+      "permissions": ["android.permission.RECORD_AUDIO"],
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
     },

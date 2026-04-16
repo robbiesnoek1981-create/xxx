@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useChat } from '../hooks/useChat';
 import { ChatMessage } from '../components/ChatMessage';
 import { QuickReplies } from '../components/QuickReplies';
+import { VoiceButton } from '../components/VoiceButton';
 import { Colors, Spacing, FontSize, BorderRadius, Shadow } from '../constants/theme';
 import type { Role, WetType } from '../types/chat';
 
@@ -61,6 +62,10 @@ function TypingIndicator() {
 export function AssignmentScreen() {
   const flatListRef = useRef<FlatList>(null);
   const [inputText, setInputText] = useState('');
+  // Ref keeps the text value that was present before a voice session started,
+  // so interim speech results always replace the voice-added portion only.
+  const voiceBaseRef = useRef('');
+  const inputTextRef = useRef('');
 
   const {
     phase,
@@ -75,6 +80,10 @@ export function AssignmentScreen() {
   } = useChat();
 
   useEffect(() => {
+    inputTextRef.current = inputText;
+  }, [inputText]);
+
+  useEffect(() => {
     if (messages.length > 0) {
       const timer = setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
@@ -86,9 +95,26 @@ export function AssignmentScreen() {
   const handleSend = () => {
     const text = inputText.trim();
     if (!text || isLoading) return;
+    voiceBaseRef.current = '';
     setInputText('');
     sendUserMessage(text);
   };
+
+  // Called the moment the user taps the mic — captures current text as base.
+  const handleVoiceStart = useCallback(() => {
+    voiceBaseRef.current = inputTextRef.current.trimEnd();
+  }, []);
+
+  // Called for each interim or final transcript from the mic.
+  // Interim results replace the voice-added portion; final results commit it.
+  const handleVoiceTranscript = useCallback((spoken: string, isFinal: boolean) => {
+    const base = voiceBaseRef.current;
+    const combined = base ? `${base} ${spoken}` : spoken;
+    setInputText(combined);
+    if (isFinal) {
+      voiceBaseRef.current = combined.trimEnd();
+    }
+  }, []);
 
   const renderFooter = () => (
     <>
@@ -165,12 +191,17 @@ export function AssignmentScreen() {
               style={styles.textInput}
               value={inputText}
               onChangeText={setInputText}
-              placeholder="Typ hier je bericht of plak een toewijzing…"
+              placeholder="Typ of spreek uw bericht in…"
               placeholderTextColor={Colors.disabled}
               multiline
               maxLength={4000}
               editable={!isLoading}
               accessibilityLabel="Berichtinvoer"
+            />
+            <VoiceButton
+              onRecordingStart={handleVoiceStart}
+              onTranscript={handleVoiceTranscript}
+              disabled={isLoading}
             />
             <TouchableOpacity
               style={[
