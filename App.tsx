@@ -1,6 +1,6 @@
 import React from 'react';
-import { RegistrationScreen } from './src/screens/RegistrationScreen';
+import { AssignmentScreen } from './src/screens/AssignmentScreen';
 
 export default function App() {
-  return <RegistrationScreen />;
+  return <AssignmentScreen />;
 }
