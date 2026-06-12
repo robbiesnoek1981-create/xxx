@@ -1,6 +1,6 @@
 import React from 'react';
-import { AssignmentScreen } from './src/screens/AssignmentScreen';
+import { DashboardScreen } from './src/screens/DashboardScreen';
 
 export default function App() {
-  return <AssignmentScreen />;
+  return <DashboardScreen />;
 }

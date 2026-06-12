@@ -34,6 +34,12 @@ yarn-error.*
 .env
 .env*.local
 
+# Dashboard API config (bevat wachtwoorden/tokens — nooit committen!)
+src/config/apiConfig.ts
+
+# Proxy server env
+proxy-server/.env
+
 # typescript
 *.tsbuildinfo
 
