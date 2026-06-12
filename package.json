@@ -14,9 +14,12 @@
     "@emailjs/react-native": "^5.1.0",
     "@react-native-async-storage/async-storage": "^3.0.2",
     "expo": "~54.0.33",
+    "expo-auth-session": "~6.0.3",
     "expo-constants": "^55.0.14",
+    "expo-crypto": "~14.0.1",
     "expo-mail-composer": "^55.0.13",
     "expo-status-bar": "~3.0.9",
+    "expo-web-browser": "~14.0.2",
     "react": "19.1.0",
     "react-native": "0.81.5"
   },

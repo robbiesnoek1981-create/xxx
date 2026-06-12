@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,17 @@ import {
   getUpdatedSolarData,
   getUpdatedThermostat,
 } from '../services/dashboardMockService';
+import {
+  useSpotifyAuth,
+  exchangeCodeForToken,
+  fetchCurrentPlayback,
+  spotifyPlayPause,
+  spotifyNext,
+  spotifyPrevious,
+  spotifySetVolume,
+  spotifySetShuffle,
+} from '../services/spotifyService';
+import { fetchSolarData } from '../services/solarEdgeService';
 import { LightingWidget } from '../components/dashboard/LightingWidget';
 import { ThermostatWidget } from '../components/dashboard/ThermostatWidget';
 import { SolarWidget } from '../components/dashboard/SolarWidget';
@@ -49,13 +60,65 @@ function formatDate(date: Date): string {
   return date.toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long' });
 }
 
+// Set to true when you have configured real API credentials
+const USE_LIVE_APIS = false;
+
 export function DashboardScreen() {
   const [state, setState] = useState<DashboardState>(initialDashboardState);
   const [playlistIndex, setPlaylistIndex] = useState(0);
   const now = useCurrentTime();
 
-  // Simulate live data updates every 5 seconds
+  // Spotify OAuth
+  const { request, response, promptAsync } = useSpotifyAuth();
+  const spotifyTokenExchanged = useRef(false);
+
+  // Handle Spotify OAuth response
   useEffect(() => {
+    if (
+      response?.type === 'success' &&
+      response.params?.code &&
+      request?.codeVerifier &&
+      !spotifyTokenExchanged.current
+    ) {
+      spotifyTokenExchanged.current = true;
+      exchangeCodeForToken(response.params.code, request.codeVerifier).then(ok => {
+        if (ok) {
+          setState(prev => ({
+            ...prev,
+            spotify: { ...prev.spotify, isConnected: true },
+          }));
+        }
+      });
+    }
+  }, [response]);
+
+  // Live Spotify polling (every 5s)
+  useEffect(() => {
+    if (!USE_LIVE_APIS) return;
+    const poll = async () => {
+      const data = await fetchCurrentPlayback();
+      if (data) setState(prev => ({ ...prev, spotify: data }));
+    };
+    poll();
+    const t = setInterval(poll, 5000);
+    return () => clearInterval(t);
+  }, []);
+
+  // Live SolarEdge polling (every 30s)
+  useEffect(() => {
+    if (!USE_LIVE_APIS) return;
+    const poll = async () => {
+      const data = await fetchSolarData();
+      if (data) setState(prev => ({ ...prev, solar: data }));
+    };
+    poll();
+    const t = setInterval(poll, 30_000);
+    return () => clearInterval(t);
+  }, []);
+
+  // Mock simulation when live APIs are off
+  useEffect(() => {
+    if (USE_LIVE_APIS) return;
     const timer = setInterval(() => {
       setState(prev => ({
         ...prev,
@@ -149,47 +212,47 @@ export function DashboardScreen() {
     });
   }, []);
 
-  const handlePlayPause = useCallback(() => {
-    setState(prev => ({
-      ...prev,
-      spotify: { ...prev.spotify, isPlaying: !prev.spotify.isPlaying },
-    }));
-  }, []);
+  const handlePlayPause = useCallback(async () => {
+    const playing = state.spotify.isPlaying;
+    setState(prev => ({ ...prev, spotify: { ...prev.spotify, isPlaying: !playing } }));
+    if (USE_LIVE_APIS) await spotifyPlayPause(playing);
+  }, [state.spotify.isPlaying]);
 
-  const handleNext = useCallback(() => {
+  const handleNext = useCallback(async () => {
     const nextIndex = (playlistIndex + 1) % MOCK_PLAYLIST.length;
     setPlaylistIndex(nextIndex);
     setState(prev => ({
       ...prev,
       spotify: { ...prev.spotify, currentTrack: { ...MOCK_PLAYLIST[nextIndex] }, isPlaying: true },
     }));
+    if (USE_LIVE_APIS) await spotifyNext();
   }, [playlistIndex]);
 
-  const handlePrevious = useCallback(() => {
+  const handlePrevious = useCallback(async () => {
     const prevIndex = (playlistIndex - 1 + MOCK_PLAYLIST.length) % MOCK_PLAYLIST.length;
     setPlaylistIndex(prevIndex);
     setState(prev => ({
       ...prev,
       spotify: { ...prev.spotify, currentTrack: { ...MOCK_PLAYLIST[prevIndex] }, isPlaying: true },
     }));
+    if (USE_LIVE_APIS) await spotifyPrevious();
   }, [playlistIndex]);
 
-  const handleVolumeChange = useCallback((delta: number) => {
-    setState(prev => ({
-      ...prev,
-      spotify: {
-        ...prev.spotify,
-        volume: Math.min(100, Math.max(0, prev.spotify.volume + delta)),
-      },
-    }));
-  }, []);
+  const handleVolumeChange = useCallback(async (delta: number) => {
+    const newVol = Math.min(100, Math.max(0, state.spotify.volume + delta));
+    setState(prev => ({ ...prev, spotify: { ...prev.spotify, volume: newVol } }));
+    if (USE_LIVE_APIS) await spotifySetVolume(newVol);
+  }, [state.spotify.volume]);
 
-  const handleShuffleToggle = useCallback(() => {
-    setState(prev => ({
-      ...prev,
-      spotify: { ...prev.spotify, shuffle: !prev.spotify.shuffle },
-    }));
-  }, []);
+  const handleShuffleToggle = useCallback(async () => {
+    const newShuffle = !state.spotify.shuffle;
+    setState(prev => ({ ...prev, spotify: { ...prev.spotify, shuffle: newShuffle } }));
+    if (USE_LIVE_APIS) await spotifySetShuffle(newShuffle);
+  }, [state.spotify.shuffle]);
+
+  const handleSpotifyLogin = useCallback(() => {
+    promptAsync();
+  }, [promptAsync]);
 
   const topBar = (
     <View style={IS_TABLET ? styles.topBar : styles.topBarMobile}>
@@ -254,6 +317,7 @@ export function DashboardScreen() {
               onPrevious={handlePrevious}
               onVolumeChange={handleVolumeChange}
               onShuffleToggle={handleShuffleToggle}
+              onLogin={handleSpotifyLogin}
             />
           </View>
         </ScrollView>
@@ -274,6 +338,7 @@ export function DashboardScreen() {
             onPrevious={handlePrevious}
             onVolumeChange={handleVolumeChange}
             onShuffleToggle={handleShuffleToggle}
+            onLogin={handleSpotifyLogin}
           />
         </View>
         <View style={styles.cardMobile}>

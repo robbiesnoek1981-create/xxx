@@ -10,6 +10,7 @@ interface Props {
   onPrevious: () => void;
   onVolumeChange: (delta: number) => void;
   onShuffleToggle: () => void;
+  onLogin?: () => void;
 }
 
 function formatMs(ms: number): string {
@@ -19,7 +20,7 @@ function formatMs(ms: number): string {
   return `${min}:${sec.toString().padStart(2, '0')}`;
 }
 
-export function SpotifyWidget({ data, onPlayPause, onNext, onPrevious, onVolumeChange, onShuffleToggle }: Props) {
+export function SpotifyWidget({ data, onPlayPause, onNext, onPrevious, onVolumeChange, onShuffleToggle, onLogin }: Props) {
   const progress = data.currentTrack
     ? data.currentTrack.progressMs / data.currentTrack.durationMs
     : 0;
@@ -115,10 +116,20 @@ export function SpotifyWidget({ data, onPlayPause, onNext, onPrevious, onVolumeC
             </View>
           </View>
         </>
-      ) : (
+      ) : data.isConnected ? (
         <View style={styles.noTrack}>
           <Text style={styles.noTrackIcon}>🎵</Text>
           <Text style={styles.noTrackText}>Geen muziek aan het spelen</Text>
+        </View>
+      ) : (
+        <View style={styles.noTrack}>
+          <Text style={styles.noTrackIcon}>🔒</Text>
+          <Text style={styles.noTrackText}>Niet ingelogd bij Spotify</Text>
+          {onLogin && (
+            <TouchableOpacity style={styles.loginBtn} onPress={onLogin}>
+              <Text style={styles.loginBtnText}>Inloggen met Spotify</Text>
+            </TouchableOpacity>
+          )}
         </View>
       )}
     </View>
@@ -290,6 +301,18 @@ const styles = StyleSheet.create({
   },
   noTrackText: {
     color: colors.textSecondary,
+    fontSize: 14,
+  },
+  loginBtn: {
+    marginTop: 12,
+    backgroundColor: '#1db954',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 24,
+  },
+  loginBtnText: {
+    color: '#fff',
+    fontWeight: '700',
     fontSize: 14,
   },
 });
